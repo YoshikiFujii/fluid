@@ -1,0 +1,96 @@
+﻿using DocumentFormat.OpenXml.Drawing;
+using DocumentFormat.OpenXml.Wordprocessing;
+using ModernWpf.Controls;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
+using System.Xml.Serialization;
+using Windows.UI.Xaml.Controls;
+
+namespace fluid.Pages
+{
+    public partial class EventDialog : ModernWpf.Controls.ContentDialog
+    {
+        public string EventName { get; private set; }
+        public DateTime EventDate { get; private set; }
+        public string Roster { get; private set; }
+
+        private string dataFolder = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data");
+        public string rosterFolderPath = System.IO.Path.Combine(Environment.CurrentDirectory, "roster");
+        private ObservableCollection<Event> events;
+
+        public EventDialog()
+        {
+            InitializeComponent();
+
+            try
+            {
+
+                if (Directory.Exists(rosterFolderPath))
+                {
+                    List<string>rosterFiles = Directory.GetFiles(rosterFolderPath, "*.xml")
+                                   .Select(System.IO.Path.GetFileNameWithoutExtension)
+                                   .ToList();
+
+                    foreach (var roster in rosterFiles)
+                    {
+                        RosterComboBox.Items.Add(roster);
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Debug:rosterフォルダ内に名簿が存在しません。");
+                }
+            }
+            catch (Exception ex)
+            {
+
+                MessageBox.Show("Error loading roster files: " + ex.Message);
+            }
+
+        }
+
+        private void ContentDialog_PrimaryButtonClick(ModernWpf.Controls.ContentDialog sender, ModernWpf.Controls.ContentDialogButtonClickEventArgs args)
+        {
+
+            // バリデーション: イベント名と開催日が入力されているか確認
+            if (string.IsNullOrWhiteSpace(EventNameTextBox.Text) || !EventDatePicker.SelectedDate.HasValue)
+            {
+                // 入力が不完全な場合はアラートを表示
+                MessageBox.Show("すべてのフィールドに記入してください。", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+
+                // イベントをキャンセルしてダイアログを閉じないようにする
+                args.Cancel = true;
+                return;
+            }
+            if (Directory.GetFiles(dataFolder, "*.xml").Any(file => System.IO.Path.GetFileNameWithoutExtension(file) == EventNameTextBox.Text))
+            {
+                MessageBox.Show("同じ名前のファイルが存在します。", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+                args.Cancel = true;
+                return;
+            }
+            // 入力されたイベント名と開催日を取得
+            EventName = EventNameTextBox.Text;
+            EventDate = EventDatePicker.SelectedDate.Value.Date;
+            Roster = RosterComboBox.Text;
+
+        }
+    }
+
+
+    
+}

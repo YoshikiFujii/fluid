@@ -1,0 +1,103 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
+using ModernWpf;
+using Microsoft.Win32;
+using System.Windows.Threading;
+using System.IO;
+
+namespace fluid
+{
+    /// <summary>
+    /// App.xaml の相互作用ロジック
+    /// </summary>
+    public partial class App : Application
+    {
+        public App()
+        {
+            // 未処理の例外を捕捉するイベントを登録
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+            this.DispatcherUnhandledException += App_DispatcherUnhandledException;
+        }
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
+            ApplyTheme();
+            // システムのテーマ変更イベントを登録
+            SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
+            // ModernWPF のテーマ変更イベントも登録
+            ThemeManager.Current.ActualApplicationThemeChanged += OnThemeChanged;
+
+        }
+        private void OnThemeChanged(ThemeManager sender, object args)
+        {
+            ApplyTheme(); // ModernWPFテーマが変更された場合
+        }
+
+
+        //↓の関数でテーマ変更時自動で読み込むようにしたが、なぜかwindowをリロードしないと適応されない
+
+        private void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
+        {
+            if (e.Category == UserPreferenceCategory.General)
+            {
+                ApplyTheme(); // システムのテーマが変更された場合
+            }
+        }
+
+        private void ApplyTheme()
+        {
+            bool isDark = ThemeManager.Current.ActualApplicationTheme == ApplicationTheme.Dark;
+            string themePath = isDark ? "Themes/DarkTheme.xaml" : "Themes/LightTheme.xaml";
+
+            // ModernWPF のリソースを維持しながらカスタムリソースのみ変更
+            var dictionaries = Resources.MergedDictionaries;
+            // 既存のカスタムリソースを削除 (ModernWPF のリソースは残す)
+            dictionaries.Remove(dictionaries.FirstOrDefault(d => d.Source?.ToString().Contains("Themes/") == true));
+            Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri(themePath, UriKind.Relative) });
+
+        }
+        // アプリケーション内での未処理例外をキャッチ
+        private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            Exception ex = e.ExceptionObject as Exception;
+            LogError(ex);
+            MessageBox.Show("予期しないエラーが発生しました。詳細はログを確認してください。", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+
+        // UIスレッドでの未処理例外をキャッチ
+        private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+        {
+            LogError(e.Exception);
+            MessageBox.Show("予期しないエラーが発生しました。詳細はログを確認してください。", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+            e.Handled = true;  // エラーが発生してもアプリケーションが終了しないようにする
+        }
+
+        // エラーログをファイルに書き出すメソッド
+        private void LogError(Exception ex)
+        {
+            try
+            {
+                string logFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "error.log");
+
+                // ログを追記モードで書き込む
+                using (StreamWriter writer = new StreamWriter(logFilePath, true))
+                {
+                    writer.WriteLine("日時: " + DateTime.Now);
+                    writer.WriteLine("メッセージ: " + ex.Message);
+                    writer.WriteLine("スタックトレース: " + ex.StackTrace);
+                    writer.WriteLine("------------------------------------------------------");
+                }
+            }
+            catch (Exception loggingEx)
+            {
+                // ログ書き込み中にエラーが発生した場合、標準出力にエラーメッセージを出力
+                Console.WriteLine("エラーログの書き込みに失敗しました: " + loggingEx.Message);
+            }
+        }
+    }
+}
