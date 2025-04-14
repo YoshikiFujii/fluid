@@ -21,6 +21,7 @@ using DocumentFormat.OpenXml.InkML;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Diagnostics;
 using System.Data;
+using System.Security.Cryptography;
 
 namespace fluid.Pages
 {
@@ -147,6 +148,7 @@ namespace fluid.Pages
                         };
 
                         await ConvertSuccessDialog.ShowAsync();
+                        RosterOption(xmlFileName);
                     }
 
                     // Reload roster files into DataGrid
@@ -176,140 +178,143 @@ namespace fluid.Pages
                                     .ToList();
             RosterDataGrid.ItemsSource = xmlFiles;
         }
-        private async void RosterOption(object sender, RoutedEventArgs e)
+        private void RosterOptionClick(object sender, RoutedEventArgs e)
         {
             if (RosterDataGrid.SelectedItem != null)
             {
                 dynamic selectedItem = RosterDataGrid.SelectedItem;
                 string selectedFileName = selectedItem.FileName;
-                string xmlFilePath = System.IO.Path.Combine(rosterFolderPath, selectedFileName);
 
-                if (File.Exists(xmlFilePath))
-                {
-                    // XMLファイルを読み込み
-                    XDocument xmlDoc = XDocument.Load(xmlFilePath);
-                    XElement rosterInfo = xmlDoc.Root.Element("RosterInfo");
-
-                    if (rosterInfo != null)
-                    {
-                        // XMLファイルの値を取得
-                        int nameCol = (int?)rosterInfo.Element("NameCol") ?? 0;
-                        int snCol = (int?)rosterInfo.Element("StudentNumberCol") ?? 0;
-                        int rnCol = (int?)rosterInfo.Element("RoomNumberCol") ?? 0;
-                        int kanaCol = (int?)rosterInfo.Element("KanaCol") ?? 0;
-                        int genderCol = (int?)rosterInfo.Element("GenderCol") ?? 0;
-                        int departCol = (int?)rosterInfo.Element("DepartCol") ?? 0;
-                        int yearCol = (int?)rosterInfo.Element("YearCol") ?? 0;
-
-                        // ダイアログに初期値を設定して表示
-                        var dialog = new RosterDialog(System.IO.Path.GetFileNameWithoutExtension(selectedFileName), nameCol, snCol, rnCol, kanaCol, genderCol, departCol, yearCol);
-                        var result = await dialog.ShowAsync();
-
-                        if (result == ContentDialogResult.Primary)
-                        {
-                            try
-                            {
-                                // ダイアログから取得したデータ
-                                string newRosterName = dialog.rostername;
-                                int newNameCol = dialog.namenum;
-                                int newSnCol = dialog.snnum;
-                                int newRnCol = dialog.rnnum;
-                                int newKnCol = dialog.kananum;
-                                int newGdCol = dialog.gendernum;
-                                int newDpCol = dialog.departnum;
-                                int newYrCol = dialog.departnum;
-
-                                string newFileName = $"{newRosterName}.xml";
-                                string newFilePath = System.IO.Path.Combine(rosterFolderPath, newFileName);
-
-                                
-                                // 変更があった項目のみ更新
-                                if (newNameCol != nameCol)
-                                {
-                                    rosterInfo.SetElementValue("NameCol", newNameCol);
-                                }
-                                if (newSnCol != snCol)
-                                {
-                                    rosterInfo.SetElementValue("StudentNumberCol", newSnCol);
-                                }
-                                if (newRnCol != rnCol)
-                                {
-                                    rosterInfo.SetElementValue("RoomNumberCol", newRnCol);
-                                }
-                                if (newKnCol != kanaCol)
-                                {
-                                    rosterInfo.SetElementValue("KanaCol", newKnCol);
-                                }
-                                if (newGdCol != genderCol)
-                                {
-                                    rosterInfo.SetElementValue("GenderCol", newGdCol);
-                                }
-                                if (newDpCol != departCol)
-                                {
-                                    rosterInfo.SetElementValue("DepartCol", newDpCol);
-                                }
-                                if (newYrCol != yearCol)
-                                {
-                                    rosterInfo.SetElementValue("YearCol", newYrCol);
-                                }
-                                // ファイル名が変更された場合
-                                if (selectedFileName != newFileName)
-                                {
-                                    if (File.Exists(newFilePath))
-                                    {
-                                        // ファイル名が重複している場合のエラーメッセージ
-                                        ContentDialog DuplicationErrorDialog = new ContentDialog
-                                        {
-                                            Title = "エラー",
-                                            Content = "同じ名前のファイルがすでに存在します。別の名前を指定してください。",
-                                            CloseButtonText = "OK"
-                                        };
-
-                                        await DuplicationErrorDialog.ShowAsync();
-                                        return;
-                                    }
-                                    else
-                                    {
-                                        // ファイル名を変更
-                                        File.Move(xmlFilePath, newFilePath);
-                                    }
-                                }
-                                // 更新されたXMLを保存
-                                xmlDoc.Save(newFilePath);
-
-                                // 成功メッセージ
-                                ContentDialog ChangedDialog = new ContentDialog
-                                {
-                                    Title = "成功",
-                                    Content = "変更内容を保存しました。",
-                                    CloseButtonText = "OK"
-                                };
-
-                                await ChangedDialog.ShowAsync();
-
-                                // 名簿リストを再読み込み
-                                LoadRosterFiles();
-                            }
-                            catch (Exception ex)
-                            {
-                                MessageBox.Show($"エラーが発生しました: {ex.Message}", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        MessageBox.Show("RosterInfo が見つかりませんでした。", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
-                }
-                else
-                {
-                    MessageBox.Show("選択されたファイルが存在しません。", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                RosterOption(selectedFileName);
             }
             else
             {
                 MessageBox.Show("名簿ファイルを選択してください。", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+
+        }
+        private async void RosterOption(string selectedFileName)
+        {
+            string xmlFilePath = System.IO.Path.Combine(rosterFolderPath, selectedFileName);
+
+            if (File.Exists(xmlFilePath))
+            {
+                // XMLファイルを読み込み
+                XDocument xmlDoc = XDocument.Load(xmlFilePath);
+                XElement rosterInfo = xmlDoc.Root.Element("RosterInfo");
+
+                if (rosterInfo != null)
+                {
+                    // XMLファイルの値を取得
+                    int nameCol = (int?)rosterInfo.Element("NameCol") ?? 0;
+                    int snCol = (int?)rosterInfo.Element("StudentNumberCol") ?? 0;
+                    int rnCol = (int?)rosterInfo.Element("RoomNumberCol") ?? 0;
+                    int kanaCol = (int?)rosterInfo.Element("KanaCol") ?? 0;
+                    int genderCol = (int?)rosterInfo.Element("GenderCol") ?? 0;
+                    int departCol = (int?)rosterInfo.Element("DepartCol") ?? 0;
+                    int yearCol = (int?)rosterInfo.Element("YearCol") ?? 0;
+
+                    // ダイアログに初期値を設定して表示
+                    var dialog = new RosterDialog(System.IO.Path.GetFileNameWithoutExtension(selectedFileName), nameCol, snCol, rnCol, kanaCol, genderCol, departCol, yearCol);
+                    var result = await dialog.ShowAsync();
+
+                    if (result == ContentDialogResult.Primary)
+                    {
+                        try
+                        {
+                            // ダイアログから取得したデータ
+                            string newRosterName = dialog.rostername;
+                            int newNameCol = dialog.namenum;
+                            int newSnCol = dialog.snnum;
+                            int newRnCol = dialog.rnnum;
+                            int newKnCol = dialog.kananum;
+                            int newGdCol = dialog.gendernum;
+                            int newDpCol = dialog.departnum;
+                            int newYrCol = dialog.yearnum;
+
+                            string newFileName = $"{newRosterName}.xml";
+                            string newFilePath = System.IO.Path.Combine(rosterFolderPath, newFileName);
+
+
+                            // 変更があった項目のみ更新
+                            if (newNameCol != nameCol)
+                            {
+                                rosterInfo.SetElementValue("NameCol", newNameCol);
+                            }
+                            if (newSnCol != snCol)
+                            {
+                                rosterInfo.SetElementValue("StudentNumberCol", newSnCol);
+                            }
+                            if (newRnCol != rnCol)
+                            {
+                                rosterInfo.SetElementValue("RoomNumberCol", newRnCol);
+                            }
+                            if (newKnCol != kanaCol)
+                            {
+                                rosterInfo.SetElementValue("KanaCol", newKnCol);
+                            }
+                            if (newGdCol != genderCol)
+                            {
+                                rosterInfo.SetElementValue("GenderCol", newGdCol);
+                            }
+                            if (newDpCol != departCol)
+                            {
+                                rosterInfo.SetElementValue("DepartCol", newDpCol);
+                            }
+                            if (newYrCol != yearCol)
+                            {
+                                rosterInfo.SetElementValue("YearCol", newYrCol);
+                            }
+                            // ファイル名が変更された場合
+                            if (selectedFileName != newFileName)
+                            {
+                                if (File.Exists(newFilePath))
+                                {
+                                    // ファイル名が重複している場合のエラーメッセージ
+                                    ContentDialog DuplicationErrorDialog = new ContentDialog
+                                    {
+                                        Title = "エラー",
+                                        Content = "同じ名前のファイルがすでに存在します。別の名前を指定してください。",
+                                        CloseButtonText = "OK"
+                                    };
+
+                                    await DuplicationErrorDialog.ShowAsync();
+                                    return;
+                                }
+                                else
+                                {
+                                    // ファイル名を変更
+                                    File.Move(xmlFilePath, newFilePath);
+                                }
+                            }
+                            // 更新されたXMLを保存
+                            xmlDoc.Save(newFilePath);
+
+                            // 成功メッセージ
+                            ContentDialog ChangedDialog = new ContentDialog
+                            {
+                                Title = "成功",
+                                Content = "変更内容を保存しました。",
+                                CloseButtonText = "OK"
+                            };
+
+                            await ChangedDialog.ShowAsync();
+
+                            // 名簿リストを再読み込み
+                            LoadRosterFiles();
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"エラーが発生しました: {ex.Message}", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("RosterInfo が見つかりませんでした。", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+
         }
         private async void DeleteSelectedItem(object sender, RoutedEventArgs e)
         {

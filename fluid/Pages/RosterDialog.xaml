@@ -19,7 +19,7 @@
     <StackPanel>
         <TextBlock Text="名簿名" />
         <TextBox x:Name="RosterNameTextBox" Margin="0,5,0,15" />
-        <TextBlock Text="名簿ファイルの各項目の列番号" />
+        <TextBlock Text="名簿ファイルの各項目の列番号を指定してください" />
         <Grid Margin="0,5,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />

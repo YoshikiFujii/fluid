@@ -158,6 +158,16 @@ namespace fluid.Pages
                     SameStudentSetting = true,
                     RosterName = dialog.Roster,
                 };
+                RosterInfo EventColInfo = new RosterInfo
+                {
+                    RoomNumberCol = 1,
+                    GenderCol = 2,
+                    NameCol = 3,
+                    KanaCol = 4,
+                    StudentNumberCol = 5,
+                    DepartCol = 6,
+                    YearCol = 7
+                };
 
                 try
                 {
@@ -166,6 +176,7 @@ namespace fluid.Pages
                     // RosterInfo を解析
                     var rosterInfoElement = rosterDoc.Descendants("RosterInfo").FirstOrDefault();
                     var rosterInfo = RosterInfo.FromXml(rosterInfoElement);
+                    newEvent.RosterInfo = EventColInfo;
 
                     // Roster のデータを読み込む
                     var rosterEntries = rosterDoc.Descendants("Entry")
@@ -173,6 +184,12 @@ namespace fluid.Pages
                             entry.Elements("Cell").Select(cell => cell.Value).ToList(),
                             rosterInfo))
                         .ToList();
+
+                    // 一人目の参加者のステータスを "参加状況" に設定
+                    if (rosterEntries.Count > 0)
+                    {
+                        rosterEntries[0].Status = "参加状況";
+                    }
 
                     newEvent.Roster = rosterEntries;
 
@@ -291,7 +308,8 @@ namespace fluid.Pages
         public string TouchSound { get; set; }
         public bool SameStudentSetting { get; set; }
         public List<RosterEntry> Roster { get; set; } = new List<RosterEntry>();
-        
+        public RosterInfo RosterInfo { get; set; }
+
     }
     [XmlType("Entry")]
     public class RosterEntry

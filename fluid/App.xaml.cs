@@ -23,6 +23,7 @@ namespace fluid
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
             this.DispatcherUnhandledException += App_DispatcherUnhandledException;
         }
+
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);

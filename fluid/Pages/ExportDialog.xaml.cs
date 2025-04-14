@@ -27,11 +27,12 @@ namespace fluid.Pages
         public ExportDialog(string currentEvent)
         {
             CurrentEvent = currentEvent;
+            eventFilePath = System.IO.Path.Combine("data", $"{currentEvent}.xml");
             InitializeComponent();
         }
         private void OutputListClick(object sender, RoutedEventArgs e)
         {
-            ExportListWindow exportListWindow = new ExportListWindow();
+            ExportListWindow exportListWindow = new ExportListWindow(eventFilePath,CurrentEvent);
             exportListWindow.Show();
         }
         private void OutputPDFClick(object sender, RoutedEventArgs e)

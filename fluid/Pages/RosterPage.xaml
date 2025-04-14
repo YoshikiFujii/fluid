@@ -83,7 +83,7 @@
                 <DataGrid.ContextMenu>
                     <ContextMenu>
                         <MenuItem Click="DeleteSelectedItem" Header="削除" />
-                        <MenuItem Click="RosterOption" Header="オプション" />
+                        <MenuItem Click="RosterOptionClick" Header="オプション" />
                     </ContextMenu>
                 </DataGrid.ContextMenu>
             </DataGrid>
