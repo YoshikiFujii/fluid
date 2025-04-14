@@ -73,8 +73,35 @@
                     <Run Text="エクセルファイルの1列目に学籍番号を" />
                     <LineBreak />
                     <Run Text="並べてください(1行目を空けないでください)" />
+
                 </TextBlock>
+
             </StackPanel>
         </Grid>
+
+        <Grid Margin="0,50,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="90" />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+            <TextBlock
+                Grid.Column="0"
+                HorizontalAlignment="Left"
+                FontSize="18"
+                Text="検索条件" />
+            <TextBlock
+                Grid.Column="1"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Center"
+                Text="イベントファイルのマージ及び欠席リストの登録に使用するデータを選択します。" />
+        </Grid>
+        <ComboBox
+            x:Name="SearchCondition"
+            Width="120"
+            Margin="0,10,0,0"
+            SelectedIndex="0">
+            <ComboBoxItem Content="部屋番号" />
+            <ComboBoxItem Content="学籍番号" />
+        </ComboBox>
     </StackPanel>
 </ui:ContentDialog>

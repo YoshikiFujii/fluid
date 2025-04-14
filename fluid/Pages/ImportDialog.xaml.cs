@@ -14,6 +14,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Xml.Linq;
 using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.Win32;
 using ModernWpf.Controls;
 using Windows.UI.Xaml.Controls;
@@ -26,6 +27,7 @@ namespace fluid.Pages
     public partial class ImportDialog : ModernWpf.Controls.ContentDialog
     {
         private string CurrentEvent;
+
         public bool IsImportSuccessful { get; private set; } // インポート結果を保持するプロパティ
 
         public ImportDialog(string currentEvent)
@@ -35,6 +37,33 @@ namespace fluid.Pages
         }
         private async void ImportAbsentClick(object sender, RoutedEventArgs e)
         {
+            string currentTime = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss"); // 現在の時間
+            string logFolderPath = System.IO.Path.Combine(Environment.CurrentDirectory, "log");
+            string logFilePath = System.IO.Path.Combine(logFolderPath, $"{CurrentEvent}.txt");
+
+            // ログフォルダが存在しない場合は作成
+            if (!Directory.Exists(logFolderPath))
+            {
+                Directory.CreateDirectory(logFolderPath);
+            }
+
+            string searchCondition = SearchCondition.Text;
+            string SearchKey = "";
+
+            if (searchCondition == "学籍番号")
+            {
+                SearchKey = "StudentNumber";
+            }
+            else if (searchCondition == "部屋番号")
+            {
+                SearchKey = "RoomNumber";
+            }
+            else
+            {
+                MessageBox.Show("検索条件を選択してください。", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+                return; // エラー時は処理を終了
+            }
+
             OpenFileDialog openFileDialog = new OpenFileDialog
             {
                 Filter = "Excel Files|*.xlsx",
@@ -70,14 +99,15 @@ namespace fluid.Pages
                         var worksheet = workbook.Worksheets.First();
                         foreach (var cell in worksheet.Column(1).CellsUsed())
                         {
-                            string roomNumber = cell.GetValue<string>().Trim();
-                            absentList.Add(roomNumber);
+                            string value = cell.GetValue<string>().Trim();
+                            absentList.Add(value);
                         }
                     }
 
                     XDocument xmlDoc = XDocument.Load(currentEventFilePath);
                     var entries = xmlDoc.Descendants("Entry").ToList();
-                    var registeredList = new HashSet<string>(); // 不参加登録した生徒を格納
+                    var registeredList = new HashSet<string>(); // 欠席登録した生徒
+                    var missingStudents = new List<string>(); // 名簿に存在しなかった生徒
 
                     int totalEntries = entries.Count;
                     int processedEntries = 0;
@@ -92,11 +122,11 @@ namespace fluid.Pages
                     {
                         foreach (var entry in entries)
                         {
-                            var roomNumberElement = entry.Element("RoomNumber");
-                            if (roomNumberElement != null && absentList.Contains(roomNumberElement.Value.Trim()))
+                            var searchElement = entry.Element(SearchKey);
+                            if (searchElement != null && absentList.Contains(searchElement.Value.Trim()))
                             {
                                 entry.Element("Status").Value = "不参加";
-                                registeredList.Add(roomNumberElement.Value.Trim());
+                                registeredList.Add($"部屋番号: {entry.Element("RoomNumber")?.Value ?? "不明"}, 名前: {entry.Element("Name")?.Value ?? "不明"}, 学籍番号: {entry.Element("StudentNumber")?.Value ?? "不明"}");
                             }
 
                             processedEntries++;
@@ -110,17 +140,56 @@ namespace fluid.Pages
                     });
 
                     // 名簿に存在しない欠席者リストを取得
-                    var missingStudents = absentList.Except(registeredList).ToList();
+                    missingStudents = absentList
+                        .Where(item => !entries.Any(entry => entry.Element(SearchKey)?.Value.Trim() == item))
+                        .Select(item => $"検索キー: {item}")
+                        .ToList();
 
+                    // missingデータの処理
                     if (missingStudents.Any())
                     {
-                        string missingMessage = "以下の部屋番号は名簿に存在しません:\n" + string.Join("\n", missingStudents);
-                        MessageBox.Show(missingMessage, "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        string missingMessage = "以下の生徒は名簿に存在しません:\n" + string.Join("\n", missingStudents);
+                        var dialogResult = MessageBox.Show(
+                            missingMessage,
+                            "名簿に存在しない生徒",
+                            MessageBoxButton.OKCancel,
+                            MessageBoxImage.Question
+                        );
+
+                        if (dialogResult == MessageBoxResult.Cancel)
+                        {
+                            MessageBox.Show("インポートをキャンセルしました。", "キャンセル", MessageBoxButton.OK, MessageBoxImage.Information);
+                            progressBar.Visibility = Visibility.Collapsed;
+                            return;
+                        }
                     }
-                    else
+                    xmlDoc.Save(currentEventFilePath);
+                    MessageBox.Show("欠席リストの取り込みが完了しました。", "完了", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    // ログに記録
+                    using (StreamWriter logWriter = new StreamWriter(logFilePath, true, Encoding.UTF8))
                     {
-                        xmlDoc.Save(currentEventFilePath);
-                        MessageBox.Show("欠席リストの取り込みが完了しました。", "完了", MessageBoxButton.OK, MessageBoxImage.Information);
+                        logWriter.WriteLine($"[{currentTime}] 欠席リストのインポート開始");
+
+                        if (registeredList.Count > 0)
+                        {
+                            logWriter.WriteLine("欠席登録された生徒:");
+                            foreach (var student in registeredList)
+                            {
+                                logWriter.WriteLine($"  - {student}");
+                            }
+                        }
+
+                        if (missingStudents.Count > 0)
+                        {
+                            logWriter.WriteLine("名簿に存在しなかった生徒:");
+                            foreach (var student in missingStudents)
+                            {
+                                logWriter.WriteLine($"  - {student}");
+                            }
+                        }
+
+                        logWriter.WriteLine($"[{currentTime}] 欠席リストのインポート終了");
                     }
 
                     // インポート完了後にプログレスバーを非表示
@@ -136,6 +205,34 @@ namespace fluid.Pages
 
         private async void ImportEventClick(object sender, RoutedEventArgs e)
         {
+            string currentTime = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss"); // 現在の時間
+            string logFolderPath = System.IO.Path.Combine(Environment.CurrentDirectory, "log");
+            string logFilePath = System.IO.Path.Combine(logFolderPath, $"{CurrentEvent}.txt");
+            // ログフォルダが存在しない場合は作成
+            if (!Directory.Exists(logFolderPath))
+            {
+                Directory.CreateDirectory(logFolderPath);
+            }
+
+
+            // 検索条件の取得
+            string searchCondition = SearchCondition.Text;
+            string SearchKey = "";
+
+            if (searchCondition == "学籍番号")
+            {
+                SearchKey = "StudentNumber";
+            }
+            else if (searchCondition == "部屋番号")
+            {
+                SearchKey = "RoomNumber";
+            }
+            else
+            {
+                MessageBox.Show("検索条件を選択してください。", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+                return; // エラー時は処理を終了
+            }
+
             OpenFileDialog openFileDialog = new OpenFileDialog
             {
                 Filter = "XML Files (*.xml)|*.xml",
@@ -168,10 +265,12 @@ namespace fluid.Pages
                     var sourceDoc = System.Xml.Linq.XDocument.Load(selectedFilePath);
                     var currentDoc = System.Xml.Linq.XDocument.Load(currentEventFilePath);
 
-                    // 出席記録をマージ
                     var sourceEntries = sourceDoc.Descendants("Entry");
                     var currentEntries = currentDoc.Descendants("Entry").ToList();
-                    var sameStudentList = new HashSet<string>(); //不参加登録した生徒を格納する
+                    var sameStudentList = new HashSet<string>(); // 不参加登録した生徒を格納する
+                    var errorStudentList = new HashSet<string>(); // エラーが発生した生徒を格納する
+                    var newStudentList = new HashSet<string>(); // 新たに登録された生徒を格納する
+                    var importedStudentList = new List<string>(); // 正常にインポートされた生徒
 
                     int totalEntries = sourceEntries.Count();
                     int processedEntries = 0;
@@ -186,23 +285,26 @@ namespace fluid.Pages
                     {
                         foreach (var sourceEntry in sourceEntries)
                         {
-                            var studentNumberElement = sourceEntry.Element("StudentNumber");
-                            var roomNumberElement = sourceEntry.Element("RoomNumber");
-                            var sourceStatusElement = sourceEntry.Element("Status");
+                            var studentNumberElement = sourceEntry.Element("StudentNumber")?.Value ?? "不明";
+                            var roomNumberElement = sourceEntry.Element("RoomNumber")?.Value ?? "不明";
+                            var nameElement = sourceEntry.Element("Name")?.Value ?? "不明";
+                            var sourceStatusElement = sourceEntry.Element("Status")?.Value ?? "不明";
 
-                            if (studentNumberElement == null || sourceStatusElement == null)
+                            var SearchElement = SearchKey == "StudentNumber" ? studentNumberElement : roomNumberElement;
+
+                            if (SearchElement == null || sourceStatusElement == null)
+                            {
+                                errorStudentList.Add($"部屋番号: {roomNumberElement}, 名前: {nameElement}, 学籍番号: {studentNumberElement}"); //学籍番号や部屋番号が存在しない生徒を格納
+                                continue;
+                            }
+                                
+
+                            if (string.IsNullOrWhiteSpace(SearchKey) || sourceStatusElement != "参加済み")
                                 continue;
 
-                            string studentNumber = studentNumberElement.Value;
-                            string roomNumber = roomNumberElement?.Value?.Trim() ?? "";
-                            string sourceStatus = sourceStatusElement.Value;
-
-                            if (string.IsNullOrWhiteSpace(studentNumber) || sourceStatus != "参加済み")
-                                continue;
-
-                            // 現在のイベントに同じ学籍番号があるか確認
+                            // 現在のイベントに同じ学籍番号または部屋番号があるか確認
                             var matchingEntry = currentEntries.FirstOrDefault(entry =>
-                                entry.Element("StudentNumber")?.Value == studentNumber);
+                                entry.Element(SearchKey)?.Value == SearchElement);
 
                             if (matchingEntry != null)
                             {
@@ -210,16 +312,22 @@ namespace fluid.Pages
 
                                 if (currentStatusElement != null && currentStatusElement.Value == "参加済み")
                                 {
-                                    // 両方で参加済みの場合、選択ウィンドウを表示
-                                    sameStudentList.Add(roomNumber);
+                                    // 両方で参加済みの生徒を格納
+                                    sameStudentList.Add($"部屋番号: {roomNumberElement} , 名前:  {nameElement} , 学籍番号:  {studentNumberElement}");
+                                }
+                                else
+                                {
+                                    // 正常にインポートされた生徒をリストに追加
+                                    importedStudentList.Add($"部屋番号: {roomNumberElement} , 名前:  {nameElement} , 学籍番号:  {studentNumberElement}");
                                 }
 
                                 // 上書き処理: インポート元のデータを使用
-                                currentStatusElement?.SetValue(sourceStatus);
+                                currentStatusElement?.SetValue(sourceStatusElement);
                             }
                             else
                             {
-                                // 新規追加
+                                // 元のファイルにいなかった生徒を格納
+                                newStudentList.Add($"部屋番号: {roomNumberElement}, 名前: {nameElement}, 学籍番号: {studentNumberElement}");
                                 currentDoc.Root.Element("Entries")?.Add(sourceEntry);
                             }
 
@@ -236,7 +344,7 @@ namespace fluid.Pages
                     // 重複データの処理
                     if (sameStudentList.Count > 0)
                     {
-                        string samestudentMessage = "以下のデータは両方のファイルで「参加済み」です。:\n" + string.Join("\n", sameStudentList);
+                        string samestudentMessage = "以下の生徒は両方のファイルで「参加済み」です。:\n" + string.Join("\n", sameStudentList);
                         var dialogResult = MessageBox.Show(
                             samestudentMessage,
                             "データの重複",
@@ -251,7 +359,86 @@ namespace fluid.Pages
                             return;
                         }
                     }
+                    //データ不足の生徒の処理
+                    if (errorStudentList.Count > 0)
+                    {
+                        string errorstudentMessage = "以下の生徒は"+SearchKey+"のデータを持っていません。検索条件を変更して再度インポートしてください。:\n" + string.Join("\n", errorStudentList);
+                        var dialogResult = MessageBox.Show(
+                            errorstudentMessage,
+                            "情報がない生徒",
+                            MessageBoxButton.OKCancel,
+                            MessageBoxImage.Question
+                        );
 
+                        if (dialogResult == MessageBoxResult.Cancel)
+                        {
+                            MessageBox.Show("インポートをキャンセルしました。", "キャンセル", MessageBoxButton.OK, MessageBoxImage.Information);
+                            progressBar.Visibility = Visibility.Collapsed;
+                            return;
+                        }
+                    }
+                    // 新たに登録された生徒の処理
+                    if (newStudentList.Count > 0)
+                    {
+                        string samestudentMessage = "以下の生徒はマージ先にいません。:\n" + string.Join("\n", newStudentList);
+                        var dialogResult = MessageBox.Show(
+                            samestudentMessage,
+                            "マージ先に存在しない生徒",
+                            MessageBoxButton.OKCancel,
+                            MessageBoxImage.Question
+                        );
+
+                        if (dialogResult == MessageBoxResult.Cancel)
+                        {
+                            MessageBox.Show("インポートをキャンセルしました。", "キャンセル", MessageBoxButton.OK, MessageBoxImage.Information);
+                            progressBar.Visibility = Visibility.Collapsed;
+                            return;
+                        }
+                    }
+
+                    // 重複データ、データ不足、新規生徒、正常にインポートされた生徒をログに記録
+                    using (StreamWriter logWriter = new StreamWriter(logFilePath, true, Encoding.UTF8))
+                    {
+                        logWriter.WriteLine($"[{currentTime}] インポート処理開始");
+
+                        if (sameStudentList.Count > 0)
+                        {
+                            logWriter.WriteLine("重複データ:");
+                            foreach (var student in sameStudentList)
+                            {
+                                logWriter.WriteLine($"  - {student}");
+                            }
+                        }
+
+                        if (errorStudentList.Count > 0)
+                        {
+                            logWriter.WriteLine("データ不足の生徒:");
+                            foreach (var student in errorStudentList)
+                            {
+                                logWriter.WriteLine($"  - {student}");
+                            }
+                        }
+
+                        if (newStudentList.Count > 0)
+                        {
+                            logWriter.WriteLine("新規生徒:");
+                            foreach (var student in newStudentList)
+                            {
+                                logWriter.WriteLine($"  - {student}");
+                            }
+                        }
+
+                        if (importedStudentList.Count > 0)
+                        {
+                            logWriter.WriteLine("正常にインポートされた生徒:");
+                            foreach (var student in importedStudentList)
+                            {
+                                logWriter.WriteLine($"  - {student}");
+                            }
+                        }
+
+                        logWriter.WriteLine($"[{currentTime}] インポート処理終了");
+                    }
                     // 競合チェック
                     try
                     {
