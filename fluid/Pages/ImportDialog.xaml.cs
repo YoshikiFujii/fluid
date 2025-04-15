@@ -202,7 +202,173 @@ namespace fluid.Pages
                 }
             }
         }
+        private async void ImportAttendClick(object sender, RoutedEventArgs e)
+        {
+            string currentTime = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss"); // 現在の時間
+            string logFolderPath = System.IO.Path.Combine(Environment.CurrentDirectory, "log");
+            string logFilePath = System.IO.Path.Combine(logFolderPath, $"{CurrentEvent}.txt");
 
+            // ログフォルダが存在しない場合は作成
+            if (!Directory.Exists(logFolderPath))
+            {
+                Directory.CreateDirectory(logFolderPath);
+            }
+
+            string searchCondition = SearchCondition.Text;
+            string SearchKey = "";
+
+            if (searchCondition == "学籍番号")
+            {
+                SearchKey = "StudentNumber";
+            }
+            else if (searchCondition == "部屋番号")
+            {
+                SearchKey = "RoomNumber";
+            }
+            else
+            {
+                MessageBox.Show("検索条件を選択してください。", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+                return; // エラー時は処理を終了
+            }
+
+            OpenFileDialog openFileDialog = new OpenFileDialog
+            {
+                Filter = "Excel Files|*.xlsx",
+                Title = "出席リストファイルをインポート"
+            };
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    string selectedFilePath = openFileDialog.FileName;
+
+                    // 現在のイベントファイルパスを取得
+                    string dataFolder = "data";
+                    string currentEventFilePath = System.IO.Path.Combine(dataFolder, $"{CurrentEvent}.xml");
+
+                    if (!Directory.Exists(dataFolder))
+                    {
+                        MessageBox.Show("データフォルダが見つかりません。", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    if (!File.Exists(currentEventFilePath))
+                    {
+                        MessageBox.Show("現在のイベントファイルが見つかりません。", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    // 出席者リストを取得
+                    var attendList = new HashSet<string>();
+                    using (var workbook = new XLWorkbook(selectedFilePath))
+                    {
+                        var worksheet = workbook.Worksheets.First();
+                        foreach (var cell in worksheet.Column(1).CellsUsed())
+                        {
+                            string value = cell.GetValue<string>().Trim();
+                            attendList.Add(value);
+                        }
+                    }
+
+                    XDocument xmlDoc = XDocument.Load(currentEventFilePath);
+                    var entries = xmlDoc.Descendants("Entry").ToList();
+                    var registeredList = new HashSet<string>(); // 出席登録した生徒
+                    var missingStudents = new List<string>(); // 名簿に存在しなかった生徒
+
+                    int totalEntries = entries.Count;
+                    int processedEntries = 0;
+
+                    // プログレスバーを表示
+                    progressBar.Visibility = Visibility.Visible;
+                    progressBar.Minimum = 0;
+                    progressBar.Maximum = totalEntries;
+                    progressBar.Value = 0;
+
+                    await Task.Run(() =>
+                    {
+                        foreach (var entry in entries)
+                        {
+                            var searchElement = entry.Element(SearchKey);
+                            if (searchElement != null && attendList.Contains(searchElement.Value.Trim()))
+                            {
+                                entry.Element("Status").Value = "参加済み";
+                                registeredList.Add($"部屋番号: {entry.Element("RoomNumber")?.Value ?? "不明"}, 名前: {entry.Element("Name")?.Value ?? "不明"}, 学籍番号: {entry.Element("StudentNumber")?.Value ?? "不明"}");
+                            }
+
+                            processedEntries++;
+
+                            // UI スレッドでプログレスバーを更新
+                            Application.Current.Dispatcher.Invoke(() =>
+                            {
+                                progressBar.Value = processedEntries;
+                            });
+                        }
+                    });
+
+                    // 名簿に存在しない欠席者リストを取得
+                    missingStudents = attendList
+                        .Where(item => !entries.Any(entry => entry.Element(SearchKey)?.Value.Trim() == item))
+                        .Select(item => $"検索キー: {item}")
+                        .ToList();
+
+                    // missingデータの処理
+                    if (missingStudents.Any())
+                    {
+                        string missingMessage = "以下の生徒は名簿に存在しません:\n" + string.Join("\n", missingStudents);
+                        var dialogResult = MessageBox.Show(
+                            missingMessage,
+                            "名簿に存在しない生徒",
+                            MessageBoxButton.OKCancel,
+                            MessageBoxImage.Question
+                        );
+
+                        if (dialogResult == MessageBoxResult.Cancel)
+                        {
+                            MessageBox.Show("インポートをキャンセルしました。", "キャンセル", MessageBoxButton.OK, MessageBoxImage.Information);
+                            progressBar.Visibility = Visibility.Collapsed;
+                            return;
+                        }
+                    }
+                    xmlDoc.Save(currentEventFilePath);
+                    MessageBox.Show("出席リストの取り込みが完了しました。", "完了", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    // ログに記録
+                    using (StreamWriter logWriter = new StreamWriter(logFilePath, true, Encoding.UTF8))
+                    {
+                        logWriter.WriteLine($"[{currentTime}] 出席リストのインポート開始");
+
+                        if (registeredList.Count > 0)
+                        {
+                            logWriter.WriteLine("出席登録された生徒:");
+                            foreach (var student in registeredList)
+                            {
+                                logWriter.WriteLine($"  - {student}");
+                            }
+                        }
+
+                        if (missingStudents.Count > 0)
+                        {
+                            logWriter.WriteLine("名簿に存在しなかった生徒:");
+                            foreach (var student in missingStudents)
+                            {
+                                logWriter.WriteLine($"  - {student}");
+                            }
+                        }
+
+                        logWriter.WriteLine($"[{currentTime}] 出席リストのインポート終了");
+                    }
+
+                    // インポート完了後にプログレスバーを非表示
+                    progressBar.Visibility = Visibility.Collapsed;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"エラーが発生しました: {ex.Message}", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+                    progressBar.Visibility = Visibility.Collapsed;
+                }
+            }
+        }
         private async void ImportEventClick(object sender, RoutedEventArgs e)
         {
             string currentTime = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss"); // 現在の時間

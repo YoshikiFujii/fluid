@@ -24,12 +24,13 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             <StackPanel Grid.Column="0">
                 <Button
                     Grid.Column="0"
-                    Width="240"
-                    Height="240"
+                    Width="150"
+                    Height="150"
                     Margin="10"
                     HorizontalAlignment="Center"
                     Click="ImportEventClick">
@@ -44,16 +45,16 @@
                     Margin="0,5,0,0"
                     HorizontalAlignment="Center"
                     FontSize="13">
-                    <Run Text="過去に作成したデータまたは" />
+                    <Run Text="イベントファイルをマージします" />
                     <LineBreak />
-                    <Run Text="他のPCで作成したデータをインポートします" />
+                    <Run Text="" />
                 </TextBlock>
 
             </StackPanel>
             <StackPanel Grid.Column="1">
                 <Button
-                    Width="240"
-                    Height="240"
+                    Width="150"
+                    Height="150"
                     Margin="10"
                     HorizontalAlignment="Center"
                     Click="ImportAbsentClick">
@@ -63,19 +64,50 @@
                 <TextBlock
                     HorizontalAlignment="Center"
                     FontSize="25"
-                    Text="欠席リスト" />
+                    Text="欠席登録" />
                 <TextBlock
                     Margin="0,5,0,0"
                     HorizontalAlignment="Center"
                     FontSize="13">
-                    <Run Text="リスト内の生徒を一括で欠席登録します" />
+                    <Run Text="リスト内の生徒を一括で欠席" />
                     <LineBreak />
-                    <Run Text="エクセルファイルの1列目に学籍番号を" />
+                    <Run Text="登録します。" />
                     <LineBreak />
-                    <Run Text="並べてください(1行目を空けないでください)" />
-
+                    <Run Text="エクセルファイルのA列に学籍" />
+                    <LineBreak />
+                    <Run Text="番号または部屋番号を並べ" />
+                    <LineBreak />
+                    <Run Text="てください" />
                 </TextBlock>
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+                <Button
+                    Width="150"
+                    Height="150"
+                    Margin="10"
+                    HorizontalAlignment="Center"
+                    Click="ImportAttendClick">
+                    <Image Margin="20,0,20,0" Source="/img/ImportAbsent.png" />
+                </Button>
 
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    FontSize="25"
+                    Text="一括登録" />
+                <TextBlock
+                    Margin="0,5,0,0"
+                    HorizontalAlignment="Center"
+                    FontSize="13">
+                    <Run Text="リスト内の生徒を一括で出席" />
+                    <LineBreak />
+                    <Run Text="登録します。" />
+                    <LineBreak />
+                    <Run Text="エクセルファイルのA列に学籍" />
+                    <LineBreak />
+                    <Run Text="番号または部屋番号を並べ" />
+                    <LineBreak />
+                    <Run Text="てください" />
+                </TextBlock>
             </StackPanel>
         </Grid>
 
