@@ -16,12 +16,12 @@ namespace fluid.Pages
     public partial class ExportListWindow : Window
     {
         private string CurrentEvent;
-        private string EventFilePath;
+        private string eventFilePath;
         private string excelFilePath;
         private RosterInfo rosterInfo;
-        public ExportListWindow(string eventtFilePath, string currentEvent)
+        public ExportListWindow(string EventFilePath, string currentEvent)
         {
-            EventFilePath = eventtFilePath;
+            eventFilePath = EventFilePath;
             CurrentEvent = currentEvent;
 
             InitializeComponent();
@@ -32,7 +32,7 @@ namespace fluid.Pages
             try
             {
                 // XMLファイルを読み込む
-                XDocument doc = XDocument.Load(EventFilePath);
+                XDocument doc = XDocument.Load(eventFilePath);
 
                 // RosterInfo要素を取得
                 var rosterInfoElement = doc.Descendants("RosterInfo").FirstOrDefault();
@@ -68,6 +68,37 @@ namespace fluid.Pages
             }
             return false;
         }
+        private List<Tuple<string, int, int>> GetDetail()
+        {
+            XDocument eventDoc = XDocument.Load(eventFilePath);
+            int totalParticipants = eventDoc.Descendants("Entry")
+                                     .Count(e => (string)e.Element("Status") == "参加済み" ||
+                                                 (string)e.Element("Status") == "未参加");
+            int firstTotalParticipants = eventDoc.Descendants("Entry").Count(e => (string)e.Element("Year") == "新");
+            int secondTotalParticipants = totalParticipants - firstTotalParticipants;
+            int maleTotalParticipants = eventDoc.Descendants("Entry").Count(e => (string)e.Element("Gender") == "男");
+            int femaleTotalParticipants = totalParticipants - maleTotalParticipants;
+
+            int doneParticipants = eventDoc.Descendants("Entry").Count(e => (string)e.Element("Status") == "参加済み");
+            int firstParticipants = eventDoc.Descendants("Entry")
+                                     .Count(e => (string)e.Element("Status") == "参加済み" &&
+                                                 (string)e.Element("Year") == "新");
+            int secondParticipants = doneParticipants - firstParticipants;
+            int maleParticipants = eventDoc.Descendants("Entry").Count(e => (string)e.Element("Status") == "参加済み" &&
+                                                                            (string)e.Element("Gender") == "男");
+            int femaleParticipants = doneParticipants - maleParticipants;
+
+            // 結果をリストに格納して返す
+            return new List<Tuple<string, int, int>>
+            {
+                Tuple.Create("合計人数", doneParticipants, totalParticipants),
+                Tuple.Create("１年出席人数", firstParticipants, firstTotalParticipants),
+                Tuple.Create("２年以上出席人数", secondParticipants, secondTotalParticipants),
+                Tuple.Create("男子出席人数", maleParticipants, maleTotalParticipants),
+                Tuple.Create("女子出席人数", femaleParticipants, femaleTotalParticipants)
+            };
+        }
+
         private void ExportExcelFile(object sender, RoutedEventArgs e)
         {
             SaveFileDialog saveFileDialog = new SaveFileDialog
@@ -83,7 +114,7 @@ namespace fluid.Pages
 
                 // XMLファイルを読み込む
                 DataSet dataSet = new DataSet();
-                dataSet.ReadXml(EventFilePath);
+                dataSet.ReadXml(eventFilePath);
 
                 // チェックボックスの状態を取得
                 bool isChecked = CheckedCheckBox.IsChecked == true;
@@ -99,6 +130,8 @@ namespace fluid.Pages
                 bool includeDepartment = departCheckBox?.IsChecked == true;
                 bool includeCategory = yearCheckBox?.IsChecked == true;
 
+                //詳細情報チェックボックスの状態を取得
+                bool includeDetail = detailCheckBox?.IsChecked == true;
 
                 // 少なくとも1つの列が選択されていることを確認
                 if (rosterInfo == null)
@@ -233,6 +266,24 @@ namespace fluid.Pages
 
                         // DataTableをExcelのテーブル形式で挿入
                         worksheet.Cell(1, 1).InsertTable(finalTable);
+
+                        if(includeDetail)
+                        {
+                            var details = GetDetail();
+
+                            var worksheet2 = workbook.Worksheets.Add("詳細情報");
+                            worksheet2.Cell(1, 2).Value = "出席人数";
+                            worksheet2.Cell(1, 3).Value = "総数";
+
+                            int row = 2;
+                            foreach(var detail in details)
+                            {
+                                worksheet2.Cell(row, 1).Value = detail.Item1; // タイトル
+                                worksheet2.Cell(row, 2).Value = detail.Item2; // 出席人数
+                                worksheet2.Cell(row, 3).Value = detail.Item3; // 総人数
+                                row++;
+                            }
+                        }
                     }
 
                     // Excelファイルを保存する

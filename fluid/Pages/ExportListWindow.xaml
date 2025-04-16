@@ -9,7 +9,7 @@
     xmlns:ui="http://schemas.modernwpf.com/2019"
     Title="ExportListWindow"
     Width="450"
-    Height="400"
+    Height="450"
     ui:ThemeManager.IsThemeAware="True"
     ui:TitleBar.Background="{StaticResource PrimaryHeaderBrush}"
     ui:WindowHelper.UseModernWindowStyle="True"
@@ -37,8 +37,8 @@
             <CheckBox
                 x:Name="UncheckedCheckBox"
                 Grid.Column="1"
-                IsChecked="True"
-                Content="未参加" />
+                Content="未参加"
+                IsChecked="True" />
             <CheckBox
                 x:Name="NotAttendingCheckBox"
                 Grid.Column="2"
@@ -60,43 +60,49 @@
             <CheckBox
                 x:Name="roomNumCheckBox"
                 Grid.Column="0"
-                IsChecked="True"
-                Content="部屋番号" />
+                Content="部屋番号"
+                IsChecked="True" />
             <CheckBox
                 x:Name="genderCheckBox"
                 Grid.Column="1"
-                IsChecked="True"
-                Content="性別" />
+                Content="性別"
+                IsChecked="True" />
             <CheckBox
                 x:Name="nameCheckBox"
                 Grid.Column="2"
-                IsChecked="True"
-                Content="名前" />
+                Content="名前"
+                IsChecked="True" />
             <CheckBox
                 x:Name="kanaNameCheckBox"
                 Grid.Row="1"
                 Grid.Column="0"
-                IsChecked="True"
-                Content="名前(カナ)" />
+                Content="名前(カナ)"
+                IsChecked="True" />
             <CheckBox
                 x:Name="studentNumCheckBox"
                 Grid.Row="1"
                 Grid.Column="1"
-                IsChecked="True"
-                Content="学生番号" />
+                Content="学生番号"
+                IsChecked="True" />
             <CheckBox
                 x:Name="departCheckBox"
                 Grid.Row="1"
                 Grid.Column="2"
-                IsChecked="True"
-                Content="学科" />
+                Content="学科"
+                IsChecked="True" />
             <CheckBox
                 x:Name="yearCheckBox"
                 Grid.Row="2"
                 Grid.Column="0"
-                IsChecked="True"
-                Content="区分（在・新）" />
+                Content="区分（在・新）"
+                IsChecked="True" />
         </Grid>
+        <TextBlock Margin="15,15,15,0" Text="詳細情報 (同ファイルの[詳細情報]シートに書き込まれます。)" />
+        <CheckBox
+            x:Name="detailCheckBox"
+            Margin="15,0,15,0"
+            Content="詳細情報"
+            IsChecked="True" />
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="21*" />

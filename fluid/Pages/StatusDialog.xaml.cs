@@ -36,7 +36,6 @@ namespace fluid.Pages
         private void CountStatus()
         {
             XDocument eventDoc = XDocument.Load(eventFilePath);
-            //ProgressBarの初期化--------------------------------------------------------------
             int TotalParticipants = eventDoc.Descendants("Entry")
                                      .Count(e => (string)e.Element("Status") == "参加済み" |
                                                  (string)e.Element("Status") == "未参加");
