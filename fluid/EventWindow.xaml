@@ -111,16 +111,32 @@
                             ShadowDepth="10" />
                     </Rectangle.Effect>
                 </Rectangle>
-                <Button Grid.Row="1" Width="40" HorizontalAlignment="Right" Margin="0,30,30,0" Click="UpdateProgressbarButtonCllick" VerticalAlignment="Top">
+                <Button
+                    Grid.Row="1"
+                    Width="40"
+                    Margin="0,30,80,0"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Click="StatusButtonClick">
+                    <ui:FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE8BC;" />
+                </Button>
+                <Button
+                    Grid.Row="1"
+                    Width="40"
+                    Margin="0,30,30,0"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Click="UpdateProgressbarButtonCllick">
                     <ui:FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE72C;" />
                 </Button>
                 <StackPanel Grid.Row="1">
                     <TextBlock
-                        Margin="30,30,0,10"
                         Width="80"
+                        Margin="30,30,0,10"
+                        HorizontalAlignment="Left"
                         FontSize="20"
-                        Text="ステータス" HorizontalAlignment="Left" />
-                    
+                        Text="ステータス" />
+
                     <TextBlock
                         Margin="30,0,0,0"
                         FontSize="20"

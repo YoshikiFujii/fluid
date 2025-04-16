@@ -534,6 +534,12 @@ namespace fluid
         {
             UpdateProgressBar();
         }
+        public async void StatusButtonClick(object sender, RoutedEventArgs e)
+        {
+            var dialog = new StatusDialog(eventFilePath);
+             var result = await dialog.ShowAsync();
+
+        }
         public void UpdateProgressBar()
         {
             XDocument eventDoc = XDocument.Load(eventFilePath);
@@ -560,6 +566,7 @@ namespace fluid
             SecondProgressBar.Maximum = SecondTotalParticipants;
             SecondProgressBar.Value = SecondParticipants;
             //----------------------------------------------------------------------------------
+            
         }
         public void OpenEventFolder(object sender, RoutedEventArgs e)
         {
@@ -656,6 +663,7 @@ namespace fluid
         }
         private void UpdateProgressBar(RosterItem student, string currentStatus)
         {
+
             if (currentStatus == "不参加")
             {
                 WholeProgressBar.Maximum--;

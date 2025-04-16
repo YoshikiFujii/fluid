@@ -1,23 +1,13 @@
-﻿using System;
+﻿using ClosedXML.Excel;
+using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 using System.Xml.Linq;
-using ClosedXML.Excel;
-using DocumentFormat.OpenXml.Wordprocessing;
-using Microsoft.Win32;
-using ModernWpf.Controls;
-using Windows.UI.Xaml.Controls;
 
 namespace fluid.Pages
 {
@@ -463,7 +453,7 @@ namespace fluid.Pages
                                 errorStudentList.Add($"部屋番号: {roomNumberElement}, 名前: {nameElement}, 学籍番号: {studentNumberElement}"); //学籍番号や部屋番号が存在しない生徒を格納
                                 continue;
                             }
-                                
+
 
                             if (string.IsNullOrWhiteSpace(SearchKey) || sourceStatusElement != "参加済み")
                                 continue;
@@ -528,7 +518,7 @@ namespace fluid.Pages
                     //データ不足の生徒の処理
                     if (errorStudentList.Count > 0)
                     {
-                        string errorstudentMessage = "以下の生徒は"+SearchKey+"のデータを持っていません。検索条件を変更して再度インポートしてください。:\n" + string.Join("\n", errorStudentList);
+                        string errorstudentMessage = "以下の生徒は" + SearchKey + "のデータを持っていません。検索条件を変更して再度インポートしてください。:\n" + string.Join("\n", errorStudentList);
                         var dialogResult = MessageBox.Show(
                             errorstudentMessage,
                             "情報がない生徒",

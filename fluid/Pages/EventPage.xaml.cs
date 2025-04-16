@@ -2,23 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using ui = ModernWpf.Controls;
-using System.Xml.Serialization;
 using System.IO;
-using DocumentFormat.OpenXml.Wordprocessing;
+using System.Linq;
+using System.Windows;
+using System.Windows.Input;
 using System.Xml.Linq;
+using System.Xml.Serialization;
 
 namespace fluid.Pages
 {
@@ -26,7 +15,7 @@ namespace fluid.Pages
     {
         private ObservableCollection<Event> Events = new ObservableCollection<Event>();
         private string dataFolder = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data");
-        
+
 
         public EventPage()
         {
@@ -251,7 +240,7 @@ namespace fluid.Pages
                     };
 
                     ContentDialogResult dFDresult = await deleteFileDialog.ShowAsync();
-                    
+
                     if (dFDresult == ContentDialogResult.Primary)
                     {
                         try
@@ -389,7 +378,7 @@ namespace fluid.Pages
         public void Validate()
         {
             if (!RoomNumberCol.HasValue || !GenderCol.HasValue || !NameCol.HasValue ||
-                !KanaCol.HasValue || !StudentNumberCol.HasValue || !DepartCol.HasValue|| !YearCol.HasValue)
+                !KanaCol.HasValue || !StudentNumberCol.HasValue || !DepartCol.HasValue || !YearCol.HasValue)
             {
                 throw new InvalidOperationException("必要な列番号が設定されていません。RosterInfo を確認してください。");
             }

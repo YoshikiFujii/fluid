@@ -1,25 +1,9 @@
-﻿using DocumentFormat.OpenXml.Drawing;
-using DocumentFormat.OpenXml.Wordprocessing;
-using ModernWpf.Controls;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.Xml.Serialization;
-using Windows.UI.Xaml.Controls;
 
 namespace fluid.Pages
 {
@@ -42,7 +26,7 @@ namespace fluid.Pages
 
                 if (Directory.Exists(rosterFolderPath))
                 {
-                    List<string>rosterFiles = Directory.GetFiles(rosterFolderPath, "*.xml")
+                    List<string> rosterFiles = Directory.GetFiles(rosterFolderPath, "*.xml")
                                    .Select(System.IO.Path.GetFileNameWithoutExtension)
                                    .ToList();
 
@@ -92,5 +76,5 @@ namespace fluid.Pages
     }
 
 
-    
+
 }
