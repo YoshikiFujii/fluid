@@ -22,7 +22,8 @@ namespace fluid.Pages
         }
         private void OutputPDFClick(object sender, RoutedEventArgs e)
         {
-
+            ExportPDFWindow exportPDFWindow = new ExportPDFWindow(eventFilePath, CurrentEvent);
+            exportPDFWindow.Show();
         }
     }
 }

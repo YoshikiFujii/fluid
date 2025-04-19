@@ -688,7 +688,6 @@ namespace fluid
                 if (student.Year == "在")
                     SecondProgressBar.Value--;
             }
-
         }
         // 選択された状態を保存する
         //設定をイベントファイルに保存する
