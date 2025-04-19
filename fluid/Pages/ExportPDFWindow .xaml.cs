@@ -18,6 +18,8 @@ using System.Runtime.InteropServices;
 using Spire.Doc;
 using Spire.Doc.Documents;
 using PdfSharp.Pdf.Content.Objects;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace fluid.Pages
 {
@@ -28,6 +30,7 @@ namespace fluid.Pages
     {
         private string CurrentEvent;
         private string eventFilePath;
+        private CancellationTokenSource cancellationTokenSource;
         private RosterInfo rosterInfo;
         public ExportPDFWindow(string EventFilePath, string currentEvent)
         {
@@ -35,22 +38,59 @@ namespace fluid.Pages
             CurrentEvent = currentEvent;
 
             InitializeComponent();
-            GetDate();
+            GetDefault();
             
         }
-        private void GetDate()
+        private void GetDefault()
         {
             DateTime dt = DateTime.Now;
             MonthTextBox.Text = dt.Month.ToString();
             DayTextBox.Text = dt.Day.ToString();
 
+            HeadTextBox.Text = Properties.Settings.Default.DormHead;
+            ChairPersonTextBox.Text = Properties.Settings.Default.ChairPerson;
+            YearTextBox.Text = Properties.Settings.Default.Wareki;
+            PointTextBox.Text = Properties.Settings.Default.Point;
+            ReasonTextBox.Text = Properties.Settings.Default.Reason;
+
         }
-        private void ExportPDF_click(object sender, RoutedEventArgs e)
+        private async void ExportPDF_click(object sender, RoutedEventArgs e)
         {
-            exportPDF();
+            Properties.Settings.Default.DormHead = HeadTextBox.Text;
+            Properties.Settings.Default.ChairPerson = ChairPersonTextBox.Text;
+            Properties.Settings.Default.Wareki = YearTextBox.Text;
+            Properties.Settings.Default.Point = PointTextBox.Text;
+            Properties.Settings.Default.Reason = ReasonTextBox.Text;
+            Properties.Settings.Default.Save(); // 設定を保存
+
+            ProgressWindow progressWindow = new ProgressWindow();
+            progressWindow.Show();
+
+            cancellationTokenSource = new CancellationTokenSource();
+            progressWindow.Closed += (s, args) => cancellationTokenSource.Cancel(); // ProgressWindowが閉じられたらキャンセル
+
+            try
+            {
+                // PDF生成処理を非同期で実行
+                await Task.Run(() => GeneratePDF(progressWindow, cancellationTokenSource.Token));
+            }
+            catch (OperationCanceledException)
+            {
+                MessageBox.Show("処理がキャンセルされました。", "キャンセル", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"エラーが発生しました: {ex.Message}", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                // プログレスウィンドウを閉じる
+                progressWindow.Close();
+                cancellationTokenSource.Dispose();
+            }
         }
 
-        private void exportPDF()
+        private void GeneratePDF(ProgressWindow progressWindow, CancellationToken cancellationToken)
         {
             string wordFilePath = System.IO.Path.Combine("Resources", "減点通知書base.docx");
 
@@ -76,22 +116,33 @@ namespace fluid.Pages
                     {
                         document.LoadFromFile(tempFilePath);
 
-                        // UI要素の存在確認
-                        if (HeadTextBlock == null || ChairPersonTextBlock == null || YearTextBox == null ||
-                            MonthTextBox == null || DayTextBox == null || PointTextBox == null || ReasonTextBox == null)
-                        {
-                            MessageBox.Show("必要な入力フィールドが不足しています。", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
-                            return;
-                        }
+                        // UI要素の存在確認と値の取得をUIスレッドで行う
+                        string dormHead = string.Empty;
+                        string chairPerson = string.Empty;
+                        string year = string.Empty;
+                        string month = string.Empty;
+                        string day = string.Empty;
+                        string point = string.Empty;
+                        string reason = string.Empty;
 
-                        // プレースホルダーを置き換え
-                        document.Replace("{dormitoryhead}", HeadTextBlock.Text, true, true);
-                        document.Replace("{chairperson}", ChairPersonTextBlock.Text, true, true);
-                        document.Replace("{year}", YearTextBox.Text, true, true);
-                        document.Replace("{month}", MonthTextBox.Text, true, true);
-                        document.Replace("{day}", DayTextBox.Text, true, true);
-                        document.Replace("{point}", PointTextBox.Text, true, true);
-                        document.Replace("{reason}", ReasonTextBox.Text, true, true);
+                        Dispatcher.Invoke(() =>
+                        {
+                            dormHead = HeadTextBox.Text;
+                            chairPerson = ChairPersonTextBox.Text;
+                            year = YearTextBox.Text;
+                            month = MonthTextBox.Text;
+                            day = DayTextBox.Text;
+                            point = PointTextBox.Text;
+                            reason = ReasonTextBox.Text;
+                        });
+
+                        document.Replace("{dormitoryhead}", dormHead, true, true);
+                        document.Replace("{chairperson}", chairPerson, true, true);
+                        document.Replace("{year}", year, true, true);
+                        document.Replace("{month}", month, true, true);
+                        document.Replace("{day}", day, true, true);
+                        document.Replace("{point}", point, true, true);
+                        document.Replace("{reason}", reason, true, true);
 
                         document.SaveToFile(tempFilePath, FileFormat.Docx);
                     }
@@ -114,11 +165,14 @@ namespace fluid.Pages
                         List<string> pdfFiles = new List<string>();
 
                         // 各エントリに対して個別のPDFファイルを生成
-                        foreach (var entry in entries)
+                        for (int i = 0; i<entries.Count; i++)
                         {
+                            cancellationToken.ThrowIfCancellationRequested(); // キャンセル要求を確認
+
+                            var entry = entries[i];
                             string name = entry.Element("Name")?.Value ?? "";
                             string roomNumber = entry.Element("RoomNumber")?.Value ?? "";
-                            string tempPdfPath = Path.Combine(tempDir, $"temp_{pdfFiles.Count}.pdf");
+                            string tempPdfPath = Path.Combine(tempDir, $"temp_{i}.pdf");
 
                             using (Spire.Doc.Document document = new Spire.Doc.Document())
                             {
@@ -131,6 +185,10 @@ namespace fluid.Pages
                             }
 
                             pdfFiles.Add(tempPdfPath);
+
+                            // プログレスバーを更新
+                            int progress = (int)((i + 1) / (double)entries.Count * 100);
+                            progressWindow.Dispatcher.Invoke(() => progressWindow.UpdateProgress(progress));
                         }
 
                         // PDFSharpを使用して複数のPDFを結合
@@ -140,6 +198,8 @@ namespace fluid.Pages
                             {
                                 foreach (string file in pdfFiles)
                                 {
+                                    cancellationToken.ThrowIfCancellationRequested(); // キャンセル要求を確認
+
                                     using (PdfDocument inputDocument = PdfReader.Open(file, PdfDocumentOpenMode.Import))
                                     {
                                         for (int i = 0; i < inputDocument.PageCount; i++)
@@ -151,13 +211,18 @@ namespace fluid.Pages
 
                                 outputDocument.Save(selectedPath);
                             }
-
-                            MessageBox.Show($"PDFが正常に保存されました: {selectedPath}", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                            Dispatcher.Invoke(() =>
+                            {
+                                MessageBox.Show($"PDFが正常に保存されました: {selectedPath}", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                            });
                         }
                     }
-                    catch (Exception ex)
+                    catch (OperationCanceledException)
                     {
-                        MessageBox.Show($"PDFの結合中にエラーが発生しました: {ex.Message}", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+                        Dispatcher.Invoke(() =>
+                        {
+                            MessageBox.Show("処理がキャンセルされました。", "キャンセル", MessageBoxButton.OK, MessageBoxImage.Information);
+                        });
                     }
                     finally
                     {

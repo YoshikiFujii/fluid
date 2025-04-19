@@ -47,7 +47,7 @@
                 VerticalAlignment="Center"
                 Text="寮長名" />
             <TextBox
-                x:Name="HeadTextBlock"
+                x:Name="HeadTextBox"
                 Grid.Row="1"
                 Grid.Column="1"
                 Margin="5"
@@ -59,7 +59,7 @@
                 VerticalAlignment="Center"
                 Text="風紀委員長名" />
             <TextBox
-                x:Name="ChairPersonTextBlock"
+                x:Name="ChairPersonTextBox"
                 Grid.Row="1"
                 Grid.Column="3"
                 Margin="5"
