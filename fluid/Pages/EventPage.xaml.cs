@@ -42,6 +42,11 @@ namespace fluid.Pages
             }
         }
 
+        private void OpenFolder_Click(object sender, RoutedEventArgs e)
+        {
+            // dataフォルダを開く
+            System.Diagnostics.Process.Start("explorer.exe", dataFolder);
+        }
         private void Events_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
             UpdateEventListVisibility();

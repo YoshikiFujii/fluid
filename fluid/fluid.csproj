@@ -159,10 +159,6 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="Pages\TerminalPage.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
     <Page Include="Pages\RosterPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -225,9 +221,6 @@
     </Compile>
     <Compile Include="Pages\StatusDialog.xaml.cs">
       <DependentUpon>StatusDialog.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Pages\TerminalPage.xaml.cs">
-      <DependentUpon>TerminalPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="Pages\RosterPage.xaml.cs">
       <DependentUpon>RosterPage.xaml</DependentUpon>

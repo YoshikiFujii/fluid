@@ -114,6 +114,7 @@
                 <Button
                     Grid.Row="1"
                     Width="40"
+                    Height="40"
                     Margin="0,30,80,0"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Top"
@@ -123,6 +124,7 @@
                 <Button
                     Grid.Row="1"
                     Width="40"
+                    Height="40"
                     Margin="0,30,30,0"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Top"
@@ -193,6 +195,7 @@
                 <Button
                     Grid.Row="2"
                     Margin="30"
+                    Height="40"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Top"
                     Click="OpenLogFolder"
@@ -201,6 +204,7 @@
                 </Button>
                 <Button
                     Grid.Row="2"
+                    Height="40"
                     Margin="30,30,80,30"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Top"
@@ -210,6 +214,7 @@
                 </Button>
                 <Button
                     Grid.Row="2"
+                    Height="40"
                     Margin="30,30,130,30"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Top"
@@ -218,6 +223,7 @@
                     <ui:FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE74D;" />
                 </Button>
                 <Button
+                    Height="40"
                     Grid.Row="2"
                     Margin="30,30,180,30"
                     HorizontalAlignment="Right"
@@ -322,7 +328,7 @@
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"
                             FontSize="25"
-                            Text="+" />
+                            Text="＋" />
 
                     </Button>
                 </Grid>

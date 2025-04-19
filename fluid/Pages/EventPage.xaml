@@ -21,7 +21,13 @@
                 <RowDefinition Height="50" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <Image Source="/img/RyoyuLogo.png" HorizontalAlignment="Right" VerticalAlignment="Top" Width="200" Grid.RowSpan="2"/>
+            <Image
+                Grid.RowSpan="2"
+                Width="200"
+                Height="120"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Source="/img/RyoyuLogo.png" />
 
             <TextBlock
                 x:Name="EmptyMessageTextBlock"
@@ -60,6 +66,17 @@
                 PlaceholderText="イベントを検索"
                 QueryIcon="Find"
                 TextChanged="AutoSuggestBox_TextChanged" />
+            <Button
+                x:Name="OpenFolder"
+                Grid.Row="1"
+                Width="80"
+                Height="35"
+                Margin="130,0,10,0"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Center"
+                Click="OpenFolder_Click">
+                <ui:FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE838;" />
+            </Button>
 
             <DataGrid
                 x:Name="EventList"

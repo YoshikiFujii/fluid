@@ -12,7 +12,6 @@ namespace fluid
     {
         Event,
         Roster,
-        Terminal,
         Settings,
         Library,
         About,
@@ -30,7 +29,6 @@ namespace fluid
             // 新しいページが増えたら追加
             {NaviIcon.Event, typeof(Pages.EventPage)},
             {NaviIcon.Roster, typeof(Pages.RosterPage)},
-            {NaviIcon.Terminal, typeof(Pages.TerminalPage)},
             {NaviIcon.Settings, typeof(Pages.BlankPage)},
             {NaviIcon.Library, typeof(Pages.BlankPage)},
             {NaviIcon.About, typeof(Pages.aboutPage)},

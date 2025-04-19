@@ -37,11 +37,6 @@
                 IsSelected="True"
                 Tag="{x:Static local:NaviIcon.Roster}" />
             <ui:NavigationViewItem
-                Content="認証端末の設定"
-                Icon="Edit"
-                IsSelected="True"
-                Tag="{x:Static local:NaviIcon.Terminal}" />
-            <ui:NavigationViewItem
                 Content="使い方"
                 Icon="Library"
                 IsSelected="True"
