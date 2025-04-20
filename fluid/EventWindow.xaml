@@ -194,8 +194,8 @@
                     Text="履歴" />
                 <Button
                     Grid.Row="2"
-                    Margin="30"
                     Height="40"
+                    Margin="30"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Top"
                     Click="OpenLogFolder"
@@ -223,8 +223,8 @@
                     <ui:FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE74D;" />
                 </Button>
                 <Button
-                    Height="40"
                     Grid.Row="2"
+                    Height="40"
                     Margin="30,30,180,30"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Top"
