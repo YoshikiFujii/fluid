@@ -5,6 +5,10 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Threading;
+using ClosedXML.Graphics;
+using System.Reflection;
+using SixLabors.Fonts;
+using System.Globalization;
 
 namespace fluid
 {
@@ -22,7 +26,26 @@ namespace fluid
 
         protected override void OnStartup(StartupEventArgs e)
         {
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             base.OnStartup(e);
+
+            try
+            {
+                string fontPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "NotoSansJP-Regular.ttf");
+                var customFonts = new FontCollection();
+                var notoFamily = customFonts.Add(fontPath);
+
+                // システムフォントの代わりとして使用（オプション）
+                Font fallbackFont = notoFamily.CreateFont(12, SixLabors.Fonts.FontStyle.Regular);
+
+                // 以降、明示的にこれを使う必要がある
+                // 例: image.Mutate(ctx => ctx.DrawText("Hello", fallbackFont, ...));
+            }
+            catch (Exception ex)
+            {
+                File.WriteAllText("font_error.log", ex.ToString());
+                MessageBox.Show("Notoフォントの読み込みに失敗しました");
+            }
             ApplyTheme();
             // システムのテーマ変更イベントを登録
             SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;

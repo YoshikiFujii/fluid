@@ -2,6 +2,7 @@
 using Microsoft.VisualBasic; // StrConv を使用するため
 using ModernWpf.Controls;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
@@ -100,6 +101,7 @@ namespace fluid
         private const int TimeoutMilliseconds = 2000; // タイムアウト時間（ミリ秒）
         private BitmapImage image_waiting;
         private BitmapImage image_serching;
+        private Dictionary<string, BitmapImage> preloadGifs = new Dictionary<string, BitmapImage>();
         private int RandomSoundCount = 0;
         private System.Media.SoundPlayer player = null;
         SerialPort connectedPort = null;
@@ -127,14 +129,36 @@ namespace fluid
             DataContext = this;
 
             LoadEvent();
-            image_waiting = new BitmapImage(new Uri("Resources/waiting.gif", UriKind.Relative));
-            image_serching = new BitmapImage(new Uri("Resources/searching.gif", UriKind.Relative));
-            image_waiting.CacheOption = BitmapCacheOption.OnLoad;
-            image_serching.CacheOption = BitmapCacheOption.OnLoad;
+            LoadGifAsync();
             if (!System.IO.Directory.Exists(LogFolderPath))
             {
                 Directory.CreateDirectory(LogFolderPath);
             }
+        }
+        private async void LoadGifAsync()
+        {
+            await Task.Run(() =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    var gifPaths = new Dictionary<string, string>
+                    {
+                        { "waiting", "Resources/waiting.gif" },
+                        { "searching", "Resources/searching.gif" }
+                    };
+                    foreach (var gif in gifPaths)
+                    {
+                        var bitmap = new BitmapImage();
+                        bitmap.BeginInit();
+                        bitmap.UriSource = new Uri(gif.Value, UriKind.Relative);
+                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                        bitmap.EndInit();
+                        bitmap.Freeze(); // スレッドセーフにするためにフリーズ
+                        preloadGifs[gif.Key] = bitmap;
+                    }
+                });
+
+            });
         }
         //音声ファイルの読み込み
         private void Window_ContentRendered(object sender, EventArgs e)
@@ -159,6 +183,11 @@ namespace fluid
         }
         public async void AddTerminal(object sender, RoutedEventArgs e)
         {
+            if (connectedPort != null && connectedPort.IsOpen)
+            {
+                UnconnectTerminal();
+                return;
+            }
             AddTerminalButton.IsEnabled = false; // ボタンを無効にする
             await GetCOMPort();     // 非同期でCOMポートの検索を行う
             AddTerminalButton.IsEnabled = true;  // 処理が終わったらボタンを再び有効にする
@@ -168,15 +197,71 @@ namespace fluid
                 await ReceiveDataContinuously(connectedPort);
             }
         }
+        public async void UnconnectTerminal()
+        {
+            if (connectedPort != null && connectedPort.IsOpen)
+            {
+                connectedPort.Write("111111111"); // 端末に終了コマンドを送信
+                connectedPort.Close();
+                connectedPort.Dispose();
+                connectedPort = null;
+                ShutdownButton.Visibility = Visibility.Collapsed;
+                AddTerminalButtonIcon.Glyph = "\uE710";
+                AddTerminalButton.ToolTip = "認証端末を接続する";
+                StatusAnimation.Visibility = Visibility.Collapsed;
+                SubStatusText.Text = "";
+                CertificationLabel.Content = "";
+                CertificationLabel2.Content = "";
+                CertificationRectangle.Fill = new SolidColorBrush(Color.FromRgb(222, 222, 222));
+            }
+            ContentDialog ResultDialog = new ContentDialog
+            {
+                Title = "接続解除",
+                Content = "認証端末を接続解除しました。再接続するには接続ボタンを押してください。",
+                CloseButtonText = "閉じる"
+            };
+
+            await ResultDialog.ShowAsync();
+        }
+        public async void ShutdownTerminal(object sender, RoutedEventArgs e)
+        {
+            if (connectedPort != null && connectedPort.IsOpen)
+            {
+                connectedPort.Write("222222222"); //shutdown signal
+                connectedPort.Close();
+                connectedPort.Dispose();
+                connectedPort = null;
+                ShutdownButton.Visibility = Visibility.Collapsed;
+                AddTerminalButtonIcon.Glyph = "\uE710";
+                AddTerminalButton.ToolTip = "認証端末を接続する";
+                StatusAnimation.Visibility = Visibility.Collapsed;
+                SubStatusText.Text = "";
+                CertificationLabel.Content = "";
+                CertificationLabel2.Content = "";
+                CertificationRectangle.Fill = new SolidColorBrush(Color.FromRgb(222, 222, 222));
+            }
+            ContentDialog ResultDialog = new ContentDialog
+            {
+                Title = "シャットダウン",
+                Content = "認証端末をシャットダウンしました。再接続する場合はUSBを刺しなおしてください。",
+                CloseButtonText = "閉じる"
+            };
+
+            await ResultDialog.ShowAsync();
+        }
+
         public async Task GetCOMPort()
         {
             ImageBehavior.SetAnimatedSource(StatusAnimation, null); // GIFをリセット
             await Task.Delay(100); // 短い遅延を入れて完全にリセット
-            StatusAnimation.Visibility = Visibility.Visible;
             // アニメーションの設定
             Dispatcher.Invoke(() =>
             {
-                ImageBehavior.SetAnimatedSource(StatusAnimation, image_serching); // 検索中のGIFを再生
+                if (preloadGifs.TryGetValue("searching", out var searchingGif))
+                {
+                    ImageBehavior.SetAnimatedSource(StatusAnimation, searchingGif);
+                    StatusAnimation.Visibility = Visibility.Visible;
+                }
             });
             MessageLabel.Content = "";
             SubStatusText.Text = "端末を検索中　USBタイプの認証端末を接続してください";
@@ -204,6 +289,7 @@ namespace fluid
                                 ReadTimeout = TimeoutMilliseconds,
                                 WriteTimeout = TimeoutMilliseconds,
                             };
+                            await Task.Delay(500);
                             // ポートをオープン
                             connectedPort.Open();
 
@@ -249,7 +335,17 @@ namespace fluid
                                     {
                                         SubStatusText.Text = "端末接続完了";
                                         StatusAnimation.Visibility = Visibility.Visible;
-                                        ImageBehavior.SetAnimatedSource(StatusAnimation, image_waiting);
+                                        AddTerminalButtonIcon.Glyph = "\uE711";
+                                        AddTerminalButton.ToolTip = "接続解除";
+                                        ShutdownButton.Visibility = Visibility.Visible;
+                                        Dispatcher.Invoke(() =>
+                                        {
+                                            if (preloadGifs.TryGetValue("waiting", out var waitingGif))
+                                            {
+                                                ImageBehavior.SetAnimatedSource(StatusAnimation, waitingGif);
+                                            }
+                                        });
+
                                     });
 
                                     return;
@@ -270,6 +366,7 @@ namespace fluid
                         {
                             // 例外をキャッチしてログに出力
                             Console.WriteLine($"ポート {portName} でエラーが発生: {ex.Message}");
+                            await Task.Delay(500);
                         }
                     }
                     retire++;
@@ -386,8 +483,8 @@ namespace fluid
                 {
                     if (connectedPort.BytesToRead > 0)
                     {
-                        // 読み取りバッファのサイズを指定（9バイトに変更）
-                        byte[] buffer = new byte[9];
+                        int availableBytes = connectedPort.BytesToRead;
+                        byte[] buffer = new byte[availableBytes];
 
                         // シリアルポートからデータを読み取る
                         int bytesRead = serialPort.Read(buffer, 0, buffer.Length);
@@ -402,6 +499,17 @@ namespace fluid
                             Console.WriteLine("学生証以外の検出");
                             CertificationBackChange(255, 80, 80);
                             ErrorSound();
+                        }
+                        else if (result == "E0001")
+                        {
+                            ContentDialog ScannerErrorDialog = new ContentDialog
+                            {
+                                Title = "スキャナーエラー",
+                                Content = "認証端末に接続されているNFCスキャナが正常に接続されていません。スキャナを接続しなおしてください。",
+                                CloseButtonText = "閉じる"
+                            };
+
+                            await ScannerErrorDialog.ShowAsync();
                         }
                         else
                         {

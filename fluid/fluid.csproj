@@ -27,7 +27,7 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>24</ApplicationRevision>
+    <ApplicationRevision>25</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -260,6 +260,12 @@
     <Content Include="Resources\減点通知書base.docx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <EmbeddedResource Include="Resources\msgothic.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <Content Include="Resources\NotoSansJP-Regular.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
@@ -281,9 +287,15 @@
       <Version>6.1.1</Version>
     </PackageReference>
     <PackageReference Include="SixLabors.Fonts">
-      <Version>1.0.0</Version>
+      <Version>1.0.1</Version>
     </PackageReference>
     <PackageReference Include="System.IO.Ports">
+      <Version>9.0.4</Version>
+    </PackageReference>
+    <PackageReference Include="System.Numerics.Vectors">
+      <Version>4.6.1</Version>
+    </PackageReference>
+    <PackageReference Include="System.Text.Encoding.CodePages">
       <Version>9.0.4</Version>
     </PackageReference>
     <PackageReference Include="WpfAnimatedGif">
@@ -297,14 +309,14 @@
     <Resource Include="large_ico.ico" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Resources\searching.gif">
+    <Content Include="Resources\searching.gif">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Resource>
+    </Content>
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Resources\waiting.gif">
+    <Content Include="Resources\waiting.gif">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Resource>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <Resource Include="img\ImportEvent.png">
@@ -351,9 +363,9 @@
     <None Include="Resources\large_ico.ico">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <Resource Include="img\large_ico.ico">
+    <Content Include="img\large_ico.ico">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Resource>
+    </Content>
     <Content Include="Resources\Sound\Gate_Alert.wav">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
