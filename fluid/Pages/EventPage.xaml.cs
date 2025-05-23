@@ -33,6 +33,60 @@ namespace fluid.Pages
             UpdateEventListVisibility();
 
         }
+        private void Page_DragOver(object sender, DragEventArgs e)
+        {
+            // ファイルがドラッグされている場合のみ許可
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effects = DragDropEffects.Copy;
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+            e.Handled = true;
+        }
+        private void Page_Drop(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                foreach (string file in files)
+                {
+                    // XMLファイルを読み込む
+                    if (Path.GetExtension(file).ToLower() == ".xml")
+                    {
+                        try
+                        {
+                            string fileName = System.IO.Path.GetFileName(file);
+                            string destinationPath = System.IO.Path.Combine(dataFolder, fileName);
+
+                            // 同名ファイルが存在する場合、ファイル名に番号を付加
+                            int count = 1;
+                            while (File.Exists(destinationPath))
+                            {
+                                string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(file);
+                                string extension = Path.GetExtension(file);
+                                string newFileName = $"{fileNameWithoutExtension}({count}){extension}";
+                                destinationPath = Path.Combine(dataFolder, newFileName);
+                                count++;
+                            }
+                            File.Copy(file, destinationPath, overwrite: false);
+                            LoadEventsFromXml();
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Error loading file {file}: {ex.Message}");
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show("イベントファイルをドロップしてください。");
+                    }
+                }
+            }
+        }
+
         private void TextBlock_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             if (EventList.SelectedItem != null)
@@ -103,6 +157,8 @@ namespace fluid.Pages
                     {
                         // XMLからイベントを読み込み
                         Event ev = (Event)serializer.Deserialize(fs);
+                        // ファイル名から拡張子を除いた名前を EventName に設定
+                        ev.EventName = Path.GetFileNameWithoutExtension(file);
                         Events.Add(ev);
                     }
                 }

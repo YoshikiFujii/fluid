@@ -9,9 +9,14 @@
     Title="EventPage"
     d:DesignHeight="500"
     d:DesignWidth="800"
-    mc:Ignorable="d">
-    <ui:SimpleStackPanel Spacing="24">
-        <Grid Margin="10,10,10,10">
+    mc:Ignorable="d"
+    AllowDrop="True"
+    DragOver="Page_DragOver"
+    Drop="Page_Drop">
+    <ui:SimpleStackPanel
+            Spacing="24">
+        <Grid
+            Margin="10,10,10,10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>

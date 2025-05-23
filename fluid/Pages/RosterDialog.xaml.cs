@@ -1,4 +1,6 @@
-﻿using System.Windows;
+﻿using System.IO;
+using System.Linq;
+using System.Windows;
 
 namespace fluid.Pages
 {
@@ -27,6 +29,13 @@ namespace fluid.Pages
         }
         private void ContentDialog_PrimaryButtonClick(ModernWpf.Controls.ContentDialog sender, ModernWpf.Controls.ContentDialogButtonClickEventArgs args)
         {
+            char[] invalidChars = Path.GetInvalidFileNameChars();
+            if (RosterNameTextBox.Text.Any(c => invalidChars.Contains(c)))
+            {
+                MessageBox.Show($"イベント名に使用できない文字が含まれています。\n禁止文字: {string.Join(" ", invalidChars)}", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+                args.Cancel = true;
+                return;
+            }
             // バリデーション: イベント名と開催日が入力されているか確認
             if (string.IsNullOrWhiteSpace(RosterNameTextBox.Text) || NameNum.Value <= 0 || SNNum.Value <= 0 || RNNum.Value <= 0 || KanaNum.Value <= 0 || GenderNum.Value <= 0 || DepartNum.Value <= 0 || YearNum.Value <= 0)
             {

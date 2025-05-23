@@ -61,6 +61,14 @@ namespace fluid.Pages
                 args.Cancel = true;
                 return;
             }
+            char[]invalidChars = Path.GetInvalidFileNameChars();
+            if (EventNameTextBox.Text.Any(c => invalidChars.Contains(c)))
+            {
+                MessageBox.Show($"イベント名に使用できない文字が含まれています。\n禁止文字: {string.Join(" ", invalidChars)}", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+                args.Cancel = true;
+                return;
+            }
+
             if (Directory.GetFiles(dataFolder, "*.xml").Any(file => System.IO.Path.GetFileNameWithoutExtension(file) == EventNameTextBox.Text))
             {
                 MessageBox.Show("同じ名前のファイルが存在します。", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);

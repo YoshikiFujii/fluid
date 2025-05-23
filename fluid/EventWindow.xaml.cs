@@ -95,6 +95,8 @@ namespace fluid
         private int SecondTotalParticipants;//2年の総数
         private int SecondParticipants;//progressnumberの2年の値
 
+        private bool isDialogOpen = false;
+
         private int ConnectTryCount = 0;
         private const string QueryMessage = "cntfluid";
         private const string ExpectedResponse = "hithere!";
@@ -199,6 +201,7 @@ namespace fluid
         }
         public async void UnconnectTerminal()
         {
+            if (isDialogOpen) return;
             if (connectedPort != null && connectedPort.IsOpen)
             {
                 connectedPort.Write("111111111"); // 端末に終了コマンドを送信
@@ -213,15 +216,45 @@ namespace fluid
                 CertificationLabel.Content = "";
                 CertificationLabel2.Content = "";
                 CertificationRectangle.Fill = new SolidColorBrush(Color.FromRgb(222, 222, 222));
-            }
-            ContentDialog ResultDialog = new ContentDialog
-            {
-                Title = "接続解除",
-                Content = "認証端末を接続解除しました。再接続するには接続ボタンを押してください。",
-                CloseButtonText = "閉じる"
-            };
 
-            await ResultDialog.ShowAsync();
+                isDialogOpen = true;
+                ContentDialog DisconnectDialog = new ContentDialog
+                {
+                    Title = "接続解除",
+                    Content = "認証端末を接続解除しました。再接続するには接続ボタンを押してください。",
+                    CloseButtonText = "閉じる"
+                };
+
+                await DisconnectDialog.ShowAsync();
+            }
+            else 
+            {
+                if (connectedPort != null && connectedPort.IsOpen)
+                {
+                    connectedPort.Close();
+                    connectedPort.Dispose();
+                    connectedPort = null;
+                }
+                ShutdownButton.Visibility = Visibility.Collapsed;
+                AddTerminalButtonIcon.Glyph = "\uE710";
+                AddTerminalButton.ToolTip = "認証端末を接続する";
+                StatusAnimation.Visibility = Visibility.Collapsed;
+                SubStatusText.Text = "";
+                CertificationLabel.Content = "";
+                CertificationLabel2.Content = "";
+                CertificationRectangle.Fill = new SolidColorBrush(Color.FromRgb(222, 222, 222));
+
+                isDialogOpen = true;
+                ContentDialog ForceDisconnectDialog = new ContentDialog
+                {
+                    Title = "接続解除",
+                    Content = "認証端末からの接続が切れました。再接続するには接続ボタンを押してください。",
+                    CloseButtonText = "閉じる"
+                };
+
+                await ForceDisconnectDialog.ShowAsync();
+            }
+            isDialogOpen = false;
         }
         public async void ShutdownTerminal(object sender, RoutedEventArgs e)
         {
@@ -478,6 +511,10 @@ namespace fluid
         {
             try
             {
+                DateTime lastPingTime = DateTime.Now;
+                connectedPort.Write("PING");
+                System.Console.WriteLine("PINGを送信しました。");
+
                 // データを受信し続けるループ
                 while (serialPort.IsOpen)
                 {
@@ -492,7 +529,16 @@ namespace fluid
                         // 読み取ったバイト列を文字列にデコード（UTF-8を例に使用）
                         string result = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                         Console.WriteLine("Received data: " + result);
-                        if (result == "000000000")
+                        if (result == "PONG")
+                        {
+                            Console.WriteLine("PONG を受信しました。");
+                            lastPingTime = DateTime.Now;
+                            // 3秒後に再度 "ping" を送信
+                            await Task.Delay(3000);
+                            serialPort.Write("PING");
+                            Console.WriteLine("Sent: PING");
+                        }
+                        else if (result == "000000000")
                         {
                             CertificationLabel.Content = "認証エラー：学生証以外が認識されました";
                             CertificationLabel2.Content = "再度試してください";
@@ -516,10 +562,18 @@ namespace fluid
                             AuthenticateByNFC(result);
                         }
                     }
-
+                    if ((DateTime.Now - lastPingTime).TotalSeconds>7)
+                    {
+                        // PINGが5秒以上来ない場合、接続が切れたとみなす
+                        Console.WriteLine("接続が切れました。");
+                        UnconnectTerminal();
+                        break;
+                    }
                     // 適宜、短い待機を挟んで無駄なCPU使用率を防ぐ
                     await Task.Delay(100);
                 }
+                Console.WriteLine("シリアルポートが閉じられました。");
+                UnconnectTerminal();
             }
             catch (Exception ex)
             {
